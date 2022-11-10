@@ -40,6 +40,7 @@ class C(Commander):
         parser.add_argument('--file', '-f', required=True)
         parser.add_argument('--level', '-l', type=int, default=3)
         parser.add_argument('--dilate', '-d', type=int, default=10)
+        parser.add_argument('--skip', '-s', action='store_true')
 
     def run_thres(self):
         o = OpenSlide(self.args.file)
@@ -47,14 +48,20 @@ class C(Commander):
         dim = o.level_dimensions[self.args.level]
         original = o.get_thumbnail(dim)
 
+        out_dir = with_log(f'out/crop/{name}', 'mkdir {}')
+        os.makedirs(out_dir, exist_ok=True)
+
         wsi = cv2.cvtColor(np.array(original), cv2.COLOR_RGB2BGR)
+        ok = cv2.imwrite(with_wrote(J(out_dir, f'{self.args.level}_original.jpg')), wsi)
+        if self.args.skip:
+            print('ok:', ok)
+            print('save original and abort.')
+            return
+
         gray = cv2.cvtColor(wsi, cv2.COLOR_BGR2GRAY)
         thres = cv2.adaptiveThreshold(
             gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv2.THRESH_BINARY, 51, 20)
-
-        out_dir = with_log(f'out/crop/{name}', 'mkdir {}')
-        os.makedirs(out_dir, exist_ok=True)
 
         cv2.imwrite(with_wrote(J(out_dir, f'{self.args.level}_thres.jpg')), thres)
 
